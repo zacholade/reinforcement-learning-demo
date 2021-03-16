@@ -1,0 +1,1 @@
+Monte Carlo control (MC) has a much slower initial learning curve when compared to both SARSA and Q-learning TD approaches. This is because unlike TD approaches, MC cannot learn without reaching the final outcome. This is what causes the large (negative) undiscounted return in early episodes of MC approaches as it is essentially acting randomly.
