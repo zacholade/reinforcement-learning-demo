@@ -4,10 +4,10 @@
 
 # YOUR CODE HERE
 import random
-
+import abc
 import numpy as np
 from racetrack_env import RacetrackEnv
-from typing import List
+from typing import List, Union
 from collections import defaultdict
 
 
@@ -19,8 +19,37 @@ def argmax(values: list) -> int:
     return np.random.choice(actions)
 
 
+class Epsilon:
+    def __init__(self, initial: Union[int, float]):
+        self.value = initial
+
+    @abc.abstractmethod
+    def update(self, reward: Union[int, float]) -> Union[int, float]:
+        ...
+
+
+class RewardBasedDecayEpsilon(Epsilon):
+    def __init__(self,
+                 initial: Union[int, float],
+                 minimum: Union[int, float],
+                 decay_factor: Union[int, float],
+                 reward_threshold: int,
+                 reward_increment: int) -> None:
+        super().__init__(initial)
+        self.minimum = minimum
+        self.decay_factor = decay_factor
+        self.reward_threshold = reward_threshold
+        self.reward_increment = reward_increment
+
+    def update(self, reward: Union[int, float]) -> Union[int, float]:
+        if self.value > self.minimum and reward >= self.reward_threshold:
+            self.value *= self.decay_factor
+            self.reward_threshold += self.reward_increment
+        return self.value
+
+
 class EpsilonGreedyPolicy:
-    def __init__(self, Q: dict, actions: List[int], epsilon: float) -> None:
+    def __init__(self, Q: dict, actions: List[int], epsilon: Epsilon) -> None:
         self._actions = actions
         self.Q = Q
         self.epsilon = epsilon
@@ -36,14 +65,14 @@ class EpsilonGreedyPolicy:
         """
         Returns the optimal choice with probability of 1-epsilon. Else random.
         """
-        probabilities = [(self.epsilon / len(self._actions)) for _ in self._actions]
+        probabilities = [(self.epsilon.value / len(self._actions)) for _ in self._actions]
         greedy_action = argmax(self.Q[state])
-        probabilities[greedy_action] += (1 - self.epsilon)
+        probabilities[greedy_action] += (1 - self.epsilon.value)
         return np.random.choice(self._actions, p=probabilities)
 
 
 class QLearning:
-    def __init__(self, env, epsilon: float, gamma: float, alpha: float, num_episodes: int) -> None:
+    def __init__(self, env, epsilon: Epsilon, gamma: float, alpha: float, num_episodes: int) -> None:
         self.env = env
         self.epsilon = epsilon
         self.gamma = gamma
@@ -70,6 +99,8 @@ class QLearning:
                 r, s_ = self.model[s][a]
                 a1 = max(self.Q[s_])
                 self.Q[s][a] += self.alpha * (r + self.gamma * a1 - self.Q[s][a])
+
+            self.epsilon.update(reward)
             state = next_state
             if is_terminal:
                 break
@@ -84,9 +115,14 @@ class QLearning:
         return undiscounted_rewards
 
 
+epsilon = RewardBasedDecayEpsilon(initial=0.15,
+                                  minimum=0.01,
+                                  decay_factor=0.9,
+                                  reward_threshold=-40,
+                                  reward_increment=1
+                                  )
 num_agents = 20
 alpha = 0.2
-epsilon = 0.15  # chance of doing something random
 gamma = 0.9  # discount
 num_episodes = 150
 optimal_policies = []

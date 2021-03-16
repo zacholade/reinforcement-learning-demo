@@ -108,7 +108,7 @@ print('-----------------')
 print(mean_agent_rewards)
 import matplotlib.pyplot as plt
 plt.plot(mean_agent_rewards)
-plt.title(f"Monte Carlo Control - {num_agents} agents")
+plt.title(f"Monte Carlo Control - Averaged {num_agents} agents")
 plt.xlabel("Episode Number")
 plt.ylabel("Undiscounted Return")
 plt.show()

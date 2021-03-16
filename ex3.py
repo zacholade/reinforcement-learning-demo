@@ -99,7 +99,7 @@ print(mean_agent_rewards)
 import matplotlib.pyplot as plt
 
 plt.plot(mean_agent_rewards)
-plt.title(f"Q Learning - {num_agents} agents")
+plt.title(f"Q Learning - Averaged {num_agents} agents")
 plt.xlabel("Episode Number")
 plt.ylabel("Undiscounted Return")
 plt.show()

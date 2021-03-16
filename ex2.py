@@ -94,7 +94,7 @@ print(mean_agent_rewards)
 import matplotlib.pyplot as plt
 
 plt.plot(mean_agent_rewards)
-plt.title(f"Sarsa - {num_agents} agents")
+plt.title(f"Sarsa - Averaged {num_agents} agents")
 plt.xlabel("Episode Number")
 plt.ylabel("Undiscounted Return")
 plt.show()
