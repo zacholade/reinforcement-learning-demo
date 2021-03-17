@@ -54,13 +54,6 @@ class EpsilonGreedyPolicy:
         self.Q = Q
         self.epsilon = epsilon
 
-    def argmax(self, state: int) -> int:
-        # np.argmax returns the first element in a list with the max value.
-        # We dont want this. we want to get a random choice of this max val.
-        max_val = max(self.Q[state])
-        actions = [a for a in self._actions if self.Q[state][a] == max_val]
-        return np.random.choice(actions)
-
     def __call__(self, state: int) -> int:
         """
         Returns the optimal choice with probability of 1-epsilon. Else random.
@@ -82,7 +75,7 @@ class QLearning:
         self.policy = EpsilonGreedyPolicy(self.Q, env.get_actions(), epsilon)
         self.model = defaultdict(dict)
 
-    def _do_episode(self):
+    def _do_episode(self, episode_num):
         state = self.env.reset()
         episode = []
         while True:
@@ -93,14 +86,13 @@ class QLearning:
             self.Q[state][action] += self.alpha * (reward + self.gamma * best_action - self.Q[state][action])
             self.model[state][action] = (reward, next_state)
 
-            for i in range(10):
+            for i in range(20):
                 s = random.choice(list(self.model))
                 a = random.choice(list(self.model[s]))
                 r, s_ = self.model[s][a]
                 a1 = max(self.Q[s_])
                 self.Q[s][a] += self.alpha * (r + self.gamma * a1 - self.Q[s][a])
 
-            self.epsilon.update(reward)
             state = next_state
             if is_terminal:
                 break
@@ -109,18 +101,14 @@ class QLearning:
     def start(self):
         undiscounted_rewards = []
         for episode_num in range(self.num_episodes):
-            episode = self._do_episode()
-            undiscounted_rewards.append(sum([step[2] for step in episode]))
-            print(undiscounted_rewards)
+            episode = self._do_episode(episode_num)
+            undiscounted_reward = sum([step[2] for step in episode])
+            undiscounted_rewards.append(undiscounted_reward)
+            print(f"{episode_num},   {undiscounted_reward},   {self.epsilon.reward_threshold},   {self.epsilon.value}")
+            self.epsilon.update(sum([step[2] for step in episode]))
         return undiscounted_rewards
 
 
-epsilon = RewardBasedDecayEpsilon(initial=0.15,
-                                  minimum=0.01,
-                                  decay_factor=0.9,
-                                  reward_threshold=-40,
-                                  reward_increment=1
-                                  )
 num_agents = 20
 alpha = 0.2
 gamma = 0.9  # discount
@@ -129,6 +117,12 @@ optimal_policies = []
 agents_rewards_list = []
 for i in range(num_agents):
     env = RacetrackEnv()
+    epsilon = RewardBasedDecayEpsilon(initial=0.4,
+                                      minimum=0.0,
+                                      decay_factor=0.93,
+                                      reward_threshold=-200,
+                                      reward_increment=3
+                                      )
     agent = QLearning(env, epsilon, gamma, alpha, num_episodes)
     rewards = agent.start()
     agents_rewards_list.append(rewards)
@@ -142,11 +136,10 @@ for i in range(num_episodes):
     mean_agent_rewards.append(reward_avg)
 
 print('-----------------')
-print(mean_agent_rewards)
 import matplotlib.pyplot as plt
 
 plt.plot(mean_agent_rewards)
-plt.title(f"Q Learning - {num_agents} agents")
+plt.title(f"Dyna-Q Learning with Reward Based Epsilon Decay - {num_agents} agents")
 plt.xlabel("Episode Number")
 plt.ylabel("Undiscounted Return")
 plt.show()
